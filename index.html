@@ -488,7 +488,7 @@
 
             try {
                 let driverData = null;
-                if(API_URL === "") {
+                if(API_URL === "https://script.google.com/macros/s/AKfycbwU1H3xf8Xo02vMq568O4I0AEKIfQw3vicQqXqSBa-nPKWRrvd4x6WXruvDAoVQYFNn/exec") {
                     await new Promise(r => setTimeout(r, 500)); driverData = appState.drivers.find(d => d.mobile === m && d.password === p);
                 } else {
                     const res = await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'driver_login', mobile: m, pass: p})});
