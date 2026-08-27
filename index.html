@@ -565,7 +565,8 @@
 
         // ================= UNLOCK & VEHICLE MODAL =================
         function openVehicleModal(mob) {
-            const d = appState.drivers.find(x => x.mobile === mob); appState.unlockTargetId = mob;
+            function openVehicleModal(mob) {
+            const d = appState.drivers.find(x => x.mobile.toString() === mob.toString()); appState.unlockTargetId = mob;
             document.getElementById('modalProfilePic').src = d.profilePic; document.getElementById('modalOwnerName').innerText = d.name;
             document.getElementById('modalCity').innerHTML = `<i class="fa-solid fa-location-dot mr-1 text-red-500"></i>${d.city}`; document.getElementById('modalVehName').innerText = d.vehicleName;
             document.getElementById('modalRate').innerText = d.rate; document.getElementById('modalBio').innerText = d.bio || "Available for local bookings.";
