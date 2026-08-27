@@ -332,7 +332,7 @@
     <!-- MAIN JAVASCRIPT LOGIC -->
     <script>
         // ================= CONFIGURATION =================
-        const API_URL = ""; // Fill this with Google Apps Script URL when Live
+        const API_URL = "https://script.google.com/macros/s/AKfycbwU1H3xf8Xo02vMq568O4I0AEKIfQw3vicQqXqSBa-nPKWRrvd4x6WXruvDAoVQYFNn/exec"; // Fill this with Google Apps Script URL when Live
         const CLOUD_NAME = "ov7lziy0"; 
         const UPLOAD_PRESET = "Jaipur rides"; 
         
