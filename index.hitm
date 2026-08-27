@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Vehicle & Driver Directory</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .snap-x-mandatory { scroll-snap-type: x mandatory; }
+        .snap-center-item { scroll-snap-align: center; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #eab308; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .marquee { animation: marquee 15s linear infinite; white-space: nowrap; }
+        @keyframes marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased min-h-screen">
+
+    <!-- NAVIGATION BAR -->
+    <nav class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="switchView('directory')">
+                    <i class="fa-solid fa-truck-fast text-yellow-500 text-3xl mr-2"></i>
+                    <span class="font-bold text-xl tracking-tight text-gray-900">LocalRides</span>
+                </div>
+                <div class="flex space-x-2 sm:space-x-4 items-center">
+                    <button onclick="switchView('directory')" class="text-gray-600 hover:text-yellow-600 font-medium px-3 py-2 rounded-md hidden sm:block transition">Directory</button>
+                    <!-- Driver Login / Register Trigger -->
+                    <button onclick="openDriverModal()" class="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-3 py-2 sm:px-4 rounded-lg shadow-sm transition">
+                        <i class="fa-solid fa-plus sm:hidden"></i><span class="hidden sm:inline">Register / Login</span>
+                    </button>
+                    <!-- Admin Login -->
+                    <button onclick="openLoginModal()" class="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-3 py-2 rounded-lg transition" title="Admin Login">
+                        <i class="fa-solid fa-user-lock"></i> <span class="hidden sm:inline text-sm">Admin</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="w-full max-w-7xl mx-auto min-h-screen">
+        
+        <!-- ========================================== -->
+        <!-- VIEW 1: VEHICLE REGISTRATION / EDIT PAGE   -->
+        <!-- ========================================== -->
+        <section id="view-register" class="hidden py-8 px-4 sm:px-6">
+            <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-6 sm:p-10 border border-gray-100 relative">
+                <button onclick="switchView('directory')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800"><i class="fa-solid fa-times text-xl"></i></button>
+                <h2 id="regPageTitle" class="text-3xl font-bold text-center text-gray-900 mb-2">Join the Directory</h2>
+                <p id="regPageSub" class="text-center text-gray-500 mb-8">Register your vehicle to get more local bookings.</p>
+                
+                <form id="registrationForm" onsubmit="handleRegistration(event)" class="space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Owner Name *</label><input type="text" id="regName" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none transition"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Mobile (ID) *</label><input type="tel" id="regMobile" required pattern="[0-9]{10}" placeholder="10 digits" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none transition bg-white"></div>
+                        <div id="passDiv"><label class="block text-sm font-medium text-gray-700 mb-1">Password *</label><input type="text" id="regPassword" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none transition"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">City *</label><input type="text" id="regCity" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none transition"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 border-t pt-6">
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Vehicle Name *</label><input type="text" id="regVehName" placeholder="e.g. Tata Ace" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none transition"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Vehicle Number *</label><input type="text" id="regVehNum" placeholder="e.g. RJ14 XX 1234" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none uppercase transition"></div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                            <select id="regCapacity" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none transition"></select>
+                        </div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Rate (e.g. ₹15/km)</label><input type="text" id="regRate" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none transition"></div>
+                    </div>
+
+                    <div><label class="block text-sm font-medium text-gray-700 mb-1">Bio / Service Description</label><textarea id="regBio" rows="2" placeholder="Tell customers about your service..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none transition"></textarea></div>
+
+                    <!-- Uploads Section -->
+                    <div class="bg-blue-50 p-5 rounded-xl border border-blue-100 space-y-4">
+                        <h3 class="font-semibold text-blue-800"><i class="fa-solid fa-cloud-arrow-up mr-2"></i>Upload Documents <span id="uploadHint" class="text-xs text-blue-600 font-normal"></span></h3>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Profile Photo <span id="reqP">*(Required)</span></label><input type="file" id="regProfilePic" accept="image/*" required class="block w-full text-sm text-gray-500"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-1">Vehicle Photos (Up to 5) <span id="reqV">*(Required)</span></label><input type="file" id="regVehPics" accept="image/*" multiple max="5" required class="block w-full text-sm text-gray-500"></div>
+                        <div id="rcDiv"><label class="block text-sm font-medium text-gray-700 mb-1">Vehicle RC <span class="text-red-500">(Private)</span> *</label><input type="file" id="regRC" accept="image/*,application/pdf" required class="block w-full text-sm text-gray-500"></div>
+                    </div>
+
+                    <!-- Viral Referral Section (Hidden during edit) -->
+                    <div id="refDiv" class="bg-green-50 p-5 rounded-xl border border-green-200">
+                        <label class="block text-sm font-medium text-green-900 font-bold mb-1"><i class="fa-solid fa-people-arrows mr-2"></i>किसने बताया? (Referral Mobile)</label>
+                        <input type="tel" id="regReferral" placeholder="Enter friend's mobile number for their points" class="w-full p-3 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-400 outline-none transition">
+                    </div>
+
+                    <button type="submit" id="btnSubmitReg" class="w-full bg-gray-900 text-white font-bold py-4 rounded-xl hover:bg-black transition flex justify-center items-center shadow-lg transform hover:-translate-y-1">
+                        <span id="regBtnText">Submit Registration</span>
+                        <div id="regLoader" class="loader ml-3 hidden w-5 h-5 border-t-white"></div>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: PUBLIC DIRECTORY (HOME)            -->
+        <!-- ========================================== -->
+        <section id="view-directory" class="py-6 px-4 sm:px-6">
+            <div id="ad-slot-header" class="mb-6 w-full hidden justify-center overflow-hidden"></div>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-8">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1 relative">
+                        <i class="fa-solid fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                        <input type="text" id="searchInput" oninput="filterDirectory()" placeholder="Search city, owner name, or vehicle..." class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-yellow-400 focus:bg-white transition">
+                    </div>
+                    <div id="categoryFilterContainer" class="flex space-x-2 overflow-x-auto hide-scroll pb-2 md:pb-0 items-center"></div>
+                </div>
+            </div>
+            <div id="dirLoader" class="flex justify-center py-20 hidden"><div class="loader w-12 h-12"></div></div>
+            <div id="directoryGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+            <div id="emptyState" class="hidden text-center py-20">
+                <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-folder-open text-4xl text-gray-400"></i></div>
+                <p class="text-gray-500 text-lg font-medium">No vehicles found.</p>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 3: SECRET ADMIN DASHBOARD             -->
+        <!-- ========================================== -->
+        <section id="view-admin" class="hidden py-6 px-4 sm:px-6">
+            <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-800 flex items-center"><i class="fa-solid fa-user-shield text-red-500 mr-3 text-3xl"></i> Admin Control Room</h2>
+                <button onclick="logoutAdmin()" class="bg-red-50 text-red-600 px-5 py-2 rounded-lg text-sm font-bold hover:bg-red-100 transition border border-red-200"><i class="fa-solid fa-right-from-bracket mr-2"></i>Logout</button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 text-white">
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-2xl shadow"><p class="text-blue-100 text-sm font-medium mb-1">Total Vehicles</p><h3 class="text-4xl font-bold" id="statVehicles">0</h3></div>
+                <div class="bg-gradient-to-br from-green-500 to-green-600 p-5 rounded-2xl shadow"><p class="text-green-100 text-sm font-medium mb-1">Total Visitors</p><h3 class="text-4xl font-bold" id="statVisitors">0</h3></div>
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-5 rounded-2xl shadow"><p class="text-purple-100 text-sm font-medium mb-1">Number Unlocks</p><h3 class="text-4xl font-bold" id="statUnlocks">0</h3></div>
+                <div class="bg-gradient-to-br from-orange-400 to-orange-500 p-5 rounded-2xl shadow overflow-y-auto max-h-28 custom-scroll">
+                    <p class="text-orange-50 text-sm font-medium mb-2 border-b border-orange-300 pb-1">By Category</p>
+                    <div id="statCategoryBreakdown" class="text-xs space-y-1.5 font-medium"></div>
+                </div>
+            </div>
+
+            <div class="flex space-x-2 mb-6 bg-white p-2 rounded-xl shadow-sm border border-gray-200 w-full sm:w-fit">
+                <button onclick="switchAdminTab('database')" id="tab-btn-database" class="px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-50 text-blue-700 transition flex-1 sm:flex-none"><i class="fa-solid fa-database mr-2"></i> Master Database</button>
+                <button onclick="switchAdminTab('sponsorship')" id="tab-btn-sponsorship" class="px-6 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition flex-1 sm:flex-none"><i class="fa-solid fa-bullhorn mr-2"></i> Sponsorships</button>
+            </div>
+
+            <!-- TAB 1: MASTER DATABASE -->
+            <div id="tab-database" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div class="space-y-6">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                        <h4 class="font-bold text-gray-800 mb-3"><i class="fa-solid fa-tags text-yellow-500 mr-2"></i>Categories Manager</h4>
+                        <div class="flex gap-2 mb-3">
+                            <input type="text" id="newCategoryName" placeholder="New Category" class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-yellow-400">
+                            <button onclick="addCategory()" class="bg-yellow-400 px-4 rounded-lg text-sm font-bold hover:bg-yellow-500 transition"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <ul id="adminCategoryList" class="text-sm text-gray-600 space-y-2 border-t pt-3 max-h-48 overflow-y-auto"></ul>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                        <h4 class="font-bold text-gray-800 mb-3"><i class="fa-solid fa-key text-blue-500 mr-2"></i>Find Password</h4>
+                        <input type="text" id="findPassMobile" placeholder="Driver Mobile No." class="w-full p-2 border border-gray-300 rounded-lg mb-3 text-sm outline-none focus:border-blue-400">
+                        <button onclick="findPassword()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg text-sm font-bold transition">Search Database</button>
+                        <p id="passResult" class="mt-2 text-sm font-bold text-center"></p>
+                    </div>
+                </div>
+                <div class="lg:col-span-3 space-y-6">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="p-4 border-b bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <h3 class="font-bold text-gray-800 text-sm"><i class="fa-solid fa-database mr-2 text-blue-500"></i>Master Driver Database</h3>
+                            <div class="relative w-full sm:w-auto">
+                                <i class="fa-solid fa-search absolute left-3 top-2.5 text-gray-400 text-xs"></i>
+                                <input type="text" id="adminTableSearch" oninput="renderAdminTable()" placeholder="Search Name, Mobile..." class="pl-8 p-2 border border-gray-300 rounded-lg text-sm outline-none w-full sm:w-64 focus:border-yellow-400">
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-gray-600">
+                                <thead class="bg-gray-100 uppercase text-xs text-gray-500">
+                                    <tr><th class="px-4 py-3">Driver Info</th><th class="px-4 py-3">Vehicle Details</th><th class="px-2 py-3 text-center">Ref. Score</th><th class="px-2 py-3 text-center">RC Doc</th><th class="px-2 py-3 text-center">VIP Pin</th><th class="px-2 py-3 text-center">Active</th></tr>
+                                </thead>
+                                <tbody id="adminTableBody" class="divide-y divide-gray-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: SPONSORSHIPS -->
+            <div id="tab-sponsorship" class="hidden space-y-6">
+                <div class="flex justify-between items-center flex-wrap gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <div><h3 class="text-xl font-bold text-gray-800">Ad Slots Management</h3><p class="text-sm text-gray-500 mt-1">Manage local sponsors and specific slot assignments.</p></div>
+                    <button onclick="openSlotModal('new')" class="bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-xl text-sm font-bold shadow-md transition transform hover:-translate-y-1"><i class="fa-solid fa-plus mr-2"></i> Add New Slot</button>
+                </div>
+                <div id="slotsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ========================================== -->
+    <!-- MODALS & OVERLAYS                          -->
+    <!-- ========================================== -->
+
+    <!-- DRIVER AUTH MODAL (Login / Register) -->
+    <div id="driverAuthModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 relative border-t-4 border-yellow-400">
+            <button onclick="closeModal('driverAuthModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 text-xl"><i class="fa-solid fa-times"></i></button>
+            <h3 class="text-2xl font-bold mb-1 text-center text-gray-900">Driver Login</h3>
+            <p class="text-xs text-center text-gray-500 mb-6">Login to update your vehicle details</p>
+            
+            <div class="space-y-4">
+                <input type="tel" id="drvLoginMobile" placeholder="Registered Mobile Number" class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-yellow-400 font-medium">
+                <input type="password" id="drvLoginPass" placeholder="Password" class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-yellow-400 font-medium">
+                
+                <button onclick="handleDriverLogin()" id="btnDrvLogin" class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 rounded-lg flex justify-center items-center transition shadow-sm">
+                    <span id="drvLoginTxt"><i class="fa-solid fa-right-to-bracket mr-2"></i> Login</span>
+                    <div id="drvLoginLoad" class="loader ml-2 hidden w-4 h-4 border-2 border-t-gray-900"></div>
+                </button>
+                
+                <div class="text-center mt-2">
+                    <a href="#" onclick="forgotPasswordAlert()" class="text-sm text-blue-600 hover:underline font-medium">Forgot Password?</a>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-4 border-t border-gray-100 text-center">
+                <p class="text-sm text-gray-500 mb-3">Don't have an account?</p>
+                <button onclick="openNewRegistration()" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-lg transition shadow-md">
+                    Create a new user
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div id="loginModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 relative border-t-4 border-gray-800">
+            <button onclick="closeModal('loginModal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 text-xl"><i class="fa-solid fa-times"></i></button>
+            <h3 class="text-2xl font-bold mb-4 text-center text-gray-900">Admin Login</h3>
+            <div id="demoAlert" class="bg-blue-50 border border-blue-200 text-blue-700 text-xs p-3 rounded-lg mb-4 text-center hidden">
+                <strong><i class="fa-solid fa-circle-info mr-1"></i> Demo Mode Active</strong><br>Credentials are pre-filled.
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="loginMobile" placeholder="Mobile Number" class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-800 font-medium">
+                <input type="password" id="loginPass" placeholder="Password" class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-800 font-medium">
+                <button onclick="handleAdminLogin()" id="btnLogin" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-lg flex justify-center items-center transition shadow-md">
+                    <span id="loginTxt"><i class="fa-solid fa-user-shield mr-2"></i>Access Control Room</span>
+                    <div id="loginLoad" class="loader ml-2 hidden w-4 h-4 border-2 border-t-white"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VEHICLE DETAILS MODAL -->
+    <div id="vehicleModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-0 md:p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:rounded-2xl max-w-4xl flex flex-col md:flex-row overflow-hidden relative shadow-2xl" id="vehicleModalInner">
+            <button onclick="closeModal('vehicleModal')" class="absolute top-4 right-4 z-20 bg-black/50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-black transition"><i class="fa-solid fa-times"></i></button>
+            <div class="w-full md:w-3/5 bg-black h-64 md:h-[550px] relative">
+                <div id="modalGallery" class="flex overflow-x-auto snap-x-mandatory h-full hide-scroll"></div>
+            </div>
+            <div class="w-full md:w-2/5 flex flex-col h-full bg-white">
+                <div class="p-6 border-b flex items-center bg-gray-50">
+                    <img id="modalProfilePic" class="w-14 h-14 rounded-full object-cover border-2 border-yellow-400 shadow-sm">
+                    <div class="ml-4"><h3 id="modalOwnerName" class="font-bold text-xl text-gray-900"></h3><p id="modalCity" class="text-sm text-gray-500 mt-0.5 font-medium"></p></div>
+                </div>
+                <div class="p-6 flex-grow space-y-5 overflow-y-auto">
+                    <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 flex justify-between shadow-sm">
+                        <div><p class="text-[10px] font-bold text-yellow-800 uppercase tracking-wider mb-1">Vehicle</p><p id="modalVehName" class="font-bold text-lg text-gray-900 leading-tight"></p></div>
+                        <div class="text-right"><p class="text-[10px] font-bold text-yellow-800 uppercase tracking-wider mb-1">Rate</p><p id="modalRate" class="font-bold text-green-600 text-lg leading-tight"></p></div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-800 text-sm mb-2 flex items-center"><i class="fa-solid fa-circle-info mr-2 text-blue-500"></i> About Service</h4>
+                        <p id="modalBio" class="text-gray-600 text-sm whitespace-pre-line leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100"></p>
+                    </div>
+                </div>
+                <div class="p-5 mt-auto bg-white border-t border-gray-200">
+                    <button onclick="initiateNumberUnlock()" class="w-full bg-gray-900 text-white font-bold py-4 rounded-xl shadow-xl hover:bg-black hover:-translate-y-1 transition transform flex justify-center items-center"><i class="fa-solid fa-phone mr-2"></i> View Mobile Number</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UNLOCK MODAL -->
+    <div id="unlockModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden text-center transform transition-all scale-100">
+            <div class="bg-gray-50 p-6 border-b relative" id="unlockAdContainer">
+                <span class="absolute top-2 left-2 bg-white/90 text-[10px] px-2 py-1 rounded font-bold uppercase text-gray-600 shadow-sm z-10 border border-gray-200">Local Sponsor</span>
+                <div id="unlockAdContent" class="w-full h-44 flex items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm border border-gray-200"></div>
+                <p class="text-xs text-gray-500 mt-3 font-medium"><i class="fa-solid fa-heart text-red-400 mr-1"></i> Support our local businesses!</p>
+            </div>
+            <div class="p-8 bg-white">
+                <button id="btnUnlock" disabled class="w-full bg-gray-200 text-gray-500 font-bold py-4 rounded-xl flex items-center justify-center transition-all cursor-not-allowed"><i class="fa-solid fa-lock mr-2"></i> Wait 3 seconds...</button>
+                <div id="revealedNumberDiv" class="hidden mt-4 flex flex-col items-center animate-[fadeIn_0.5s_ease-in-out]">
+                    <p class="text-sm text-gray-500 mb-1 font-bold">Driver's Direct Number</p>
+                    <a href="#" id="revealedPhoneLink" class="text-4xl font-black text-green-600 tracking-wider mb-5 hover:underline decoration-2 underline-offset-4"></a>
+                    <div class="flex gap-3 w-full">
+                        <a href="#" id="waLink" target="_blank" class="flex-1 bg-[#25D366] text-white py-3 rounded-xl font-bold flex justify-center items-center hover:bg-[#20b858] shadow-md transition transform hover:-translate-y-1"><i class="fa-brands fa-whatsapp mr-2 text-xl"></i> WhatsApp</a>
+                        <button onclick="closeModal('unlockModal')" class="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 shadow-sm transition">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLOT MODAL (Admin) -->
+    <div id="slotModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+            <div class="p-4 border-b bg-gray-50 flex justify-between items-center"><h3 class="font-bold text-gray-800" id="slotModalTitle">Slot Settings</h3><button onclick="document.getElementById('slotModal').classList.add('hidden')" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-times text-xl"></i></button></div>
+            <div class="p-6 space-y-4 overflow-y-auto max-h-[80vh]">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-gray-600 mb-1">Sponsor Name</label><input type="text" id="slotSponsorName" class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400"></div>
+                    <div><label class="block text-xs font-bold text-gray-600 mb-1">WhatsApp Number</label><input type="tel" id="slotSponsorPhone" class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-gray-600 mb-1">Slot Position</label><select id="slotPos" class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none bg-gray-50 font-bold text-blue-700"><option value="Top Header">Top Header</option><option value="Inline Slot 1">Inline Slot 1</option><option value="Inline Slot 2">Inline Slot 2</option><option value="Unlock Screen">Unlock Screen</option></select></div>
+                    <div><label class="block text-xs font-bold text-gray-600 mb-1">Ad Type</label><select id="slotType" onchange="toggleAdInput()" class="w-full p-2 border border-gray-300 rounded-lg text-sm outline-none bg-gray-50"><option value="Image">Banner Image</option><option value="Text">Text Message</option></select></div>
+                </div>
+                <div id="adImageDiv" class="border-2 border-dashed border-gray-300 p-3 rounded-lg bg-gray-50"><label class="block text-xs font-bold text-gray-600 mb-1">Upload Banner Image</label><input type="file" id="slotAdImage" accept="image/*" class="w-full text-xs text-gray-500"></div>
+                <div id="adTextDiv" class="hidden"><label class="block text-xs font-bold text-gray-600 mb-1">Ad Text / Message</label><textarea id="slotAdText" class="w-full p-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400" rows="3"></textarea></div>
+                <div class="bg-orange-50 p-4 rounded-xl border border-orange-100 mt-2">
+                    <h4 class="text-sm font-bold text-orange-800 mb-3"><i class="fa-solid fa-clock-rotate-left mr-2"></i>Auto-Expiry Setup</h4>
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div><label class="block text-xs font-bold text-orange-900 mb-1">Start Date</label><input type="date" id="slotStartDate" class="w-full p-2 border border-orange-200 rounded-lg text-sm outline-none" onchange="calculateExpiry()"></div>
+                        <div><label class="block text-xs font-bold text-orange-900 mb-1">Duration</label><select id="slotDuration" class="w-full p-2 border border-orange-200 rounded-lg text-sm outline-none" onchange="calculateExpiry()"><option value="7">1 Week</option><option value="15">15 Days</option><option value="30" selected>1 Month</option><option value="90">3 Months</option></select></div>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border border-orange-200 text-center"><span class="text-xs text-gray-500">Ad will automatically turn OFF on:</span><br><span id="slotExpiryResult" class="font-bold text-red-600 text-lg">Select Date</span></div>
+                </div>
+                <button onclick="saveSlot()" id="btnSaveSlot" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition mt-2 flex justify-center items-center"><span id="saveSlotTxt">Save & Activate Slot</span><div id="saveSlotLoader" class="loader ml-2 hidden w-4 h-4 border-2 border-t-white"></div></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        // ================= CONFIGURATION =================
+        const API_URL = ""; // Fill this with Google Apps Script URL when Live
+        const CLOUD_NAME = "ov7lziy0"; 
+        const UPLOAD_PRESET = "Jaipur rides"; 
+        
+        let appState = {
+            drivers: [], ads: [], categories: ["3-Wheeler", "Pickup/Mini Truck", "Cab/Taxi", "Bus/Traveler", "Other"],
+            stats: { visitors: 0, unlocks: 0 }, currentFilter: { search: '', category: '' },
+            adminToken: null, adminContact: "+91 0000000000", unlockTargetId: null,
+            isEditMode: false, editMobile: null, editDataRaw: null
+        };
+
+        let editingSlotId = null;
+
+        // ================= INITIALIZATION & FETCH =================
+        document.addEventListener('DOMContentLoaded', () => { fetchData(); });
+
+        async function fetchData() {
+            document.getElementById('dirLoader').classList.remove('hidden');
+            if(API_URL === "") {
+                setTimeout(() => {
+                    appState.drivers = [
+                        { id: '1', mobile: '9876543210', password: '123', name: 'Ramesh Singh', city: 'Jaipur', vehicleName: 'Tata Ace Gold', vehicleNumber: 'RJ14 TD 1000', capacity: 'Pickup/Mini Truck', rate: '₹15/km', bio: 'Experienced driver available 24x7.', profilePic: 'https://i.pravatar.cc/150?u=1', vehiclePics: ['https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400'], rcPhoto: '#', referralCount: 15, isVIP: true, isActive: true }
+                    ];
+                    appState.ads = []; appState.stats = { visitors: 342, unlocks: 89 }; appState.adminContact = "+91 9999999999";
+                    initUI();
+                }, 600);
+            } else {
+                try {
+                    const res = await fetch(API_URL + "?action=getData"); const data = await res.json();
+                    appState.drivers = data.drivers || []; appState.ads = data.ads || [];
+                    appState.categories = data.categories && data.categories.length > 0 ? data.categories : appState.categories;
+                    appState.stats = data.stats || {visitors:0, unlocks:0}; appState.adminContact = data.adminPhone || "Admin";
+                    processAdsExpiry(); initUI();
+                } catch(e) { alert("Database connection failed."); }
+            }
+        }
+
+        function processAdsExpiry() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            appState.ads.forEach(ad => { if(ad.isActive) { const exp = new Date(ad.start); exp.setDate(exp.getDate() + parseInt(ad.days)); if(today > exp) { ad.isActive = false; } } });
+        }
+
+        function initUI() {
+            document.getElementById('dirLoader').classList.add('hidden');
+            renderCategoryDropdowns(); renderDirectory(); renderHeaderAd();
+            if(API_URL === "") {
+                document.getElementById('demoAlert').classList.remove('hidden');
+                document.getElementById('loginMobile').value = "9999999999"; document.getElementById('loginPass').value = "ADMIN123";
+            } else {
+                document.getElementById('loginMobile').value = ""; document.getElementById('loginPass').value = "";
+            }
+        }
+
+        function switchView(view) {
+            ['view-register', 'view-directory', 'view-admin'].forEach(v => document.getElementById(v).classList.add('hidden'));
+            document.getElementById(`view-${view}`).classList.remove('hidden');
+            if(view === 'directory') { renderDirectory(); renderHeaderAd(); }
+            if(view === 'admin') renderAdminDashboard();
+            window.scrollTo(0,0);
+        }
+
+        function switchAdminTab(tab) {
+            document.getElementById('tab-database').classList.add('hidden'); document.getElementById('tab-sponsorship').classList.add('hidden');
+            document.getElementById('tab-btn-database').className = "px-6 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition flex-1 sm:flex-none";
+            document.getElementById('tab-btn-sponsorship').className = "px-6 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition flex-1 sm:flex-none";
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tab}`).className = "px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-50 text-blue-700 transition flex-1 sm:flex-none";
+        }
+
+        // ================= DIRECTORY & PUBLIC UI =================
+        function renderCategoryDropdowns() {
+            const sel = document.getElementById('regCapacity'); sel.innerHTML = appState.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            const filterDiv = document.getElementById('categoryFilterContainer');
+            filterDiv.innerHTML = `<button onclick="setCat('')" class="cat-btn px-5 py-2.5 bg-yellow-100 text-yellow-800 rounded-xl whitespace-nowrap text-sm border border-yellow-200 font-bold transition shadow-sm">All Vehicles</button>` +
+                appState.categories.map(c => `<button onclick="setCat('${c}')" class="cat-btn px-5 py-2.5 bg-gray-50 text-gray-600 rounded-xl whitespace-nowrap text-sm border border-gray-200 font-medium hover:bg-gray-100 transition shadow-sm">${c}</button>`).join('');
+        }
+
+        function setCat(c) {
+            appState.currentFilter.category = c;
+            document.querySelectorAll('.cat-btn').forEach(btn => { btn.classList.remove('bg-yellow-100', 'text-yellow-800', 'border-yellow-200', 'font-bold'); btn.classList.add('bg-gray-50', 'text-gray-600', 'border-gray-200', 'font-medium'); });
+            event.currentTarget.classList.remove('bg-gray-50', 'text-gray-600', 'border-gray-200', 'font-medium'); event.currentTarget.classList.add('bg-yellow-100', 'text-yellow-800', 'border-yellow-200', 'font-bold');
+            renderDirectory();
+        }
+        function filterDirectory() { appState.currentFilter.search = document.getElementById('searchInput').value.toLowerCase().trim(); renderDirectory(); }
+
+        function renderHeaderAd() {
+            const hAds = appState.ads.filter(a => a.pos === 'Top Header' && a.isActive);
+            const container = document.getElementById('ad-slot-header');
+            if(hAds.length > 0) {
+                const hAd = hAds[Math.floor(Math.random() * hAds.length)];
+                if(hAd.type === 'Image') container.innerHTML = `<img src="${hAd.content}" class="rounded-xl shadow-md w-full max-w-4xl max-h-32 object-cover border border-gray-200">`;
+                else container.innerHTML = `<div class="w-full max-w-4xl bg-yellow-100 text-yellow-900 font-bold p-3 rounded-xl shadow-sm border border-yellow-300 relative overflow-hidden flex items-center"><i class="fa-solid fa-bullhorn absolute left-4 z-10 bg-yellow-100 p-1 text-lg"></i><div class="marquee ml-8">${hAd.content}</div></div>`;
+                container.classList.remove('hidden'); container.classList.add('flex');
+            } else { container.classList.add('hidden'); }
+        }
+
+        function renderDirectory() {
+            const grid = document.getElementById('directoryGrid'); grid.innerHTML = '';
+            let filtered = appState.drivers.filter(d => d.isActive);
+            if(appState.currentFilter.category) filtered = filtered.filter(d => d.capacity === appState.currentFilter.category);
+            if(appState.currentFilter.search) { const s = appState.currentFilter.search; filtered = filtered.filter(d => d.city.toLowerCase().includes(s) || d.vehicleName.toLowerCase().includes(s) || d.name.toLowerCase().includes(s)); }
+
+            if(filtered.length === 0) { document.getElementById('emptyState').classList.remove('hidden'); return; }
+            document.getElementById('emptyState').classList.add('hidden');
+
+            const inlineAd1 = appState.ads.find(a => a.pos === 'Inline Slot 1' && a.isActive);
+            const inlineAd2 = appState.ads.find(a => a.pos === 'Inline Slot 2' && a.isActive);
+
+            filtered.sort((a, b) => { if (a.isVIP !== b.isVIP) return a.isVIP ? -1 : 1; return b.referralCount - a.referralCount; });
+
+            const renderAdCard = (ad) => `<div class="bg-gray-50 rounded-2xl p-4 flex flex-col justify-center items-center border-dashed border-2 border-gray-300 text-center relative overflow-hidden h-full min-h-[280px]"><span class="absolute top-3 left-3 text-[10px] text-gray-500 font-bold bg-white px-2 py-1 rounded shadow-sm border border-gray-200 z-10">SPONSOR AD</span>${ad.type==='Image' ? `<img src="${ad.content}" class="w-full h-40 object-cover rounded-xl shadow-sm">` : `<p class="font-bold text-gray-700 p-4 text-base">${ad.content}</p>`}</div>`;
+
+            filtered.forEach((driver, idx) => {
+                if(idx === 4 && inlineAd1) grid.innerHTML += renderAdCard(inlineAd1); 
+                if(idx === 8 && inlineAd2) grid.innerHTML += renderAdCard(inlineAd2); 
+                grid.innerHTML += `
+                    <div class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-300 border border-gray-100 overflow-hidden cursor-pointer flex flex-col h-full group" onclick="openVehicleModal('${driver.mobile}')">
+                        <div class="relative h-48 bg-gray-200 overflow-hidden"><img src="${driver.vehiclePics[0]}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">${driver.isVIP ? `<div class="absolute top-3 left-3 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-md flex items-center"><i class="fa-solid fa-star text-[10px] mr-1"></i> TOP VIP</div>` : ''}</div>
+                        <div class="p-5 flex-grow flex flex-col">
+                            <div class="flex justify-between items-start mb-3">
+                                <div><h3 class="font-bold text-gray-900 text-lg leading-tight mb-1">${driver.vehicleName}</h3><p class="text-[10px] bg-gray-100 border border-gray-200 inline-block px-1.5 py-0.5 rounded text-gray-600 uppercase font-bold">${driver.vehicleNumber}</p></div>
+                                <span class="bg-green-50 text-green-700 border border-green-200 text-xs px-2.5 py-1 rounded-lg font-bold whitespace-nowrap">${driver.rate}</span>
+                            </div>
+                            <div class="flex items-center mt-auto pt-4 border-t border-gray-100"><img src="${driver.profilePic}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200"><div class="ml-3"><p class="text-sm font-bold text-gray-800 leading-tight">${driver.name}</p><p class="text-xs text-gray-500 font-medium mt-0.5"><i class="fa-solid fa-location-dot text-red-400 mr-1 text-[10px]"></i>${driver.city}</p></div></div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        // ================= DRIVER AUTH & EDIT SYSTEM =================
+        function openDriverModal() {
+            document.getElementById('driverAuthModal').classList.remove('hidden');
+            document.getElementById('drvLoginMobile').value = ""; document.getElementById('drvLoginPass').value = "";
+        }
+        function forgotPasswordAlert() { alert("Forgot Password?\n\nPlease contact Admin at: " + appState.adminContact + " to reset your password."); }
+        function openNewRegistration() {
+            closeModal('driverAuthModal'); appState.isEditMode = false; appState.editMobile = null; appState.editDataRaw = null;
+            document.getElementById('registrationForm').reset();
+            document.getElementById('regPageTitle').innerText = "Join the Directory"; document.getElementById('regPageSub').innerText = "Register your vehicle to get more local bookings.";
+            document.getElementById('btnSubmitReg').className = "w-full bg-gray-900 text-white font-bold py-4 rounded-xl hover:bg-black transition flex justify-center items-center shadow-lg transform hover:-translate-y-1";
+            document.getElementById('regBtnText').innerText = "Submit Registration";
+            document.getElementById('passDiv').classList.remove('hidden'); document.getElementById('refDiv').classList.remove('hidden'); document.getElementById('rcDiv').classList.remove('hidden');
+            document.getElementById('regMobile').readOnly = false; document.getElementById('regMobile').classList.remove('bg-gray-100', 'text-gray-500', 'cursor-not-allowed');
+            document.getElementById('regProfilePic').required = true; document.getElementById('regVehPics').required = true; document.getElementById('regRC').required = true;
+            document.getElementById('reqP').innerText = "*(Required)"; document.getElementById('reqV').innerText = "*(Required)"; document.getElementById('uploadHint').innerText = "";
+            switchView('register');
+        }
+
+        async function handleDriverLogin() {
+            const m = document.getElementById('drvLoginMobile').value.trim(); const p = document.getElementById('drvLoginPass').value.trim();
+            if(!m || !p) return alert("Please enter mobile and password.");
+            const btn = document.getElementById('btnDrvLogin'); const txt = document.getElementById('drvLoginTxt'); const loader = document.getElementById('drvLoginLoad');
+            btn.disabled = true; txt.innerText = "Logging in..."; loader.classList.remove('hidden');
+
+            try {
+                let driverData = null;
+                if(API_URL === "") {
+                    await new Promise(r => setTimeout(r, 500)); driverData = appState.drivers.find(d => d.mobile === m && d.password === p);
+                } else {
+                    const res = await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'driver_login', mobile: m, pass: p})});
+                    const result = await res.json(); if(result.status === 'success') driverData = result.data;
+                }
+
+                if(!driverData) throw new Error("Invalid Mobile Number or Password");
+
+                appState.isEditMode = true; appState.editMobile = m; appState.editDataRaw = driverData;
+                document.getElementById('regName').value = driverData.name; document.getElementById('regMobile').value = driverData.mobile;
+                document.getElementById('regMobile').readOnly = true; document.getElementById('regMobile').classList.add('bg-gray-100', 'text-gray-500', 'cursor-not-allowed');
+                document.getElementById('regCity').value = driverData.city; document.getElementById('regVehName').value = driverData.vehicleName;
+                document.getElementById('regVehNum').value = driverData.vehicleNumber; document.getElementById('regCapacity').value = driverData.capacity;
+                document.getElementById('regRate').value = driverData.rate; document.getElementById('regBio').value = driverData.bio;
+
+                document.getElementById('passDiv').classList.add('hidden'); document.getElementById('regPassword').required = false;
+                document.getElementById('refDiv').classList.add('hidden'); document.getElementById('rcDiv').classList.add('hidden'); document.getElementById('regRC').required = false;
+                document.getElementById('regProfilePic').required = false; document.getElementById('regVehPics').required = false;
+                document.getElementById('reqP').innerText = "(Optional)"; document.getElementById('reqV').innerText = "(Optional)"; document.getElementById('uploadHint').innerText = "Leave empty to keep existing photos.";
+
+                document.getElementById('regPageTitle').innerText = "Edit Profile"; document.getElementById('regPageSub').innerText = "Update your vehicle details or rates.";
+                document.getElementById('btnSubmitReg').className = "w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition flex justify-center items-center shadow-lg transform hover:-translate-y-1";
+                document.getElementById('regBtnText').innerText = "Update Profile";
+
+                closeModal('driverAuthModal'); switchView('register');
+            } catch(e) { alert(e.message); } finally { btn.disabled = false; txt.innerHTML = '<i class="fa-solid fa-right-to-bracket mr-2"></i> Login'; loader.classList.add('hidden'); }
+        }
+
+        // ================= REGISTRATION / UPDATE UPLOAD LOGIC =================
+        async function uploadFile(file) {
+            if(CLOUD_NAME === "ov7lziy0" && API_URL === "") return "https://via.placeholder.com/400?text=Connect+API+First"; // Prevents silent fail in dev
+            const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', UPLOAD_PRESET);
+            const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {method:'POST', body:fd});
+            return (await r.json()).secure_url;
+        }
+
+        async function handleRegistration(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmitReg'); const txt = document.getElementById('regBtnText'); const loader = document.getElementById('regLoader');
+            btn.disabled = true; txt.innerText = "Processing..."; loader.classList.remove('hidden');
+
+            try {
+                const mob = document.getElementById('regMobile').value.trim();
+                const payload = { action: appState.isEditMode ? 'driver_update' : 'register', mobile: mob, name: document.getElementById('regName').value.trim(), city: document.getElementById('regCity').value.trim(), vehicleName: document.getElementById('regVehName').value.trim(), vehicleNumber: document.getElementById('regVehNum').value.trim().toUpperCase(), capacity: document.getElementById('regCapacity').value, rate: document.getElementById('regRate').value.trim() || 'Ask on Call', bio: document.getElementById('regBio').value.trim() };
+
+                if(!appState.isEditMode) {
+                    if(appState.drivers.find(d => d.mobile === mob)) throw new Error("This Mobile number is already registered!");
+                    payload.password = document.getElementById('regPassword').value.trim(); payload.referral = document.getElementById('regReferral').value.trim();
+                }
+
+                txt.innerText = "Processing Photos...";
+                const pPicInput = document.getElementById('regProfilePic');
+                if(pPicInput.files.length > 0) payload.profilePic = await uploadFile(pPicInput.files[0]); else if(appState.isEditMode) payload.profilePic = appState.editDataRaw.profilePic; else payload.profilePic = `https://i.pravatar.cc/150?u=${mob}`;
+
+                const vPicsInput = document.getElementById('regVehPics');
+                if(vPicsInput.files.length > 0) { payload.vehiclePics = []; for(let i=0; i<Math.min(vPicsInput.files.length, 5); i++) payload.vehiclePics.push(await uploadFile(vPicsInput.files[i])); } else if(appState.isEditMode) { payload.vehiclePics = appState.editDataRaw.vehiclePics; } else { payload.vehiclePics = ['https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400']; }
+
+                if(!appState.isEditMode) { const rcInput = document.getElementById('regRC'); payload.rcPhoto = rcInput.files.length > 0 ? await uploadFile(rcInput.files[0]) : '#'; }
+
+                txt.innerText = "Saving to Database...";
+                if(API_URL !== "") {
+                    const response = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) }); const result = await response.json();
+                    if(result.status !== 'success') throw new Error(result.message);
+                } else {
+                    await new Promise(r => setTimeout(r, 500));
+                    if(appState.isEditMode) { const idx = appState.drivers.findIndex(d => d.mobile === mob); appState.drivers[idx] = { ...appState.drivers[idx], ...payload }; } 
+                    else { payload.id = 'MOCK' + Date.now(); payload.referralCount = 0; payload.isVIP = false; payload.isActive = true; if(payload.referral) { const ref = appState.drivers.find(d => d.mobile === payload.referral); if(ref) ref.referralCount++; } appState.drivers.push(payload); }
+                }
+
+                alert(appState.isEditMode ? "Profile Updated Successfully!" : "Success! Your vehicle has been securely added.");
+                document.getElementById('registrationForm').reset(); switchView('directory');
+            } catch(err) { alert("Error: " + err.message); } finally { btn.disabled = false; txt.innerText = appState.isEditMode ? "Update Profile" : "Submit Registration"; loader.classList.add('hidden'); }
+        }
+
+        // ================= UNLOCK & VEHICLE MODAL =================
+        function openVehicleModal(mob) {
+            const d = appState.drivers.find(x => x.mobile === mob); appState.unlockTargetId = mob;
+            document.getElementById('modalProfilePic').src = d.profilePic; document.getElementById('modalOwnerName').innerText = d.name;
+            document.getElementById('modalCity').innerHTML = `<i class="fa-solid fa-location-dot mr-1 text-red-500"></i>${d.city}`; document.getElementById('modalVehName').innerText = d.vehicleName;
+            document.getElementById('modalRate').innerText = d.rate; document.getElementById('modalBio').innerText = d.bio || "Available for local bookings.";
+            document.getElementById('modalGallery').innerHTML = d.vehiclePics.map(p => `<div class="w-full flex-shrink-0 snap-center-item h-full"><img src="${p}" class="w-full h-full object-contain"></div>`).join('');
+            document.getElementById('vehicleModal').classList.remove('hidden'); setTimeout(() => document.getElementById('vehicleModal').classList.remove('opacity-0'), 10);
+        }
+
+        function initiateNumberUnlock() {
+            closeModal('vehicleModal'); document.getElementById('unlockModal').classList.remove('hidden');
+            const unlockAds = appState.ads.filter(a => a.pos === 'Unlock Screen' && a.isActive); const adDiv = document.getElementById('unlockAdContent');
+            if(unlockAds.length > 0) {
+                const randAd = unlockAds[Math.floor(Math.random() * unlockAds.length)];
+                if(randAd.type === 'Image') adDiv.innerHTML = `<img src="${randAd.content}" class="w-full h-full object-cover">`; else adDiv.innerHTML = `<p class="p-5 text-center font-bold text-gray-800 text-lg flex items-center justify-center h-full bg-yellow-50 w-full">${randAd.content}</p>`;
+            } else { adDiv.innerHTML = `<div class="flex flex-col items-center justify-center w-full h-full text-gray-400 bg-gray-50"><i class="fa-solid fa-ad text-3xl mb-2 text-gray-300"></i><p class="font-bold text-sm">Space for Local Ads<br>Contact Admin</p></div>`; }
+
+            const btn = document.getElementById('btnUnlock'); btn.disabled = true; btn.className = "w-full bg-gray-200 text-gray-400 font-bold py-4 rounded-xl cursor-not-allowed";
+            document.getElementById('revealedNumberDiv').classList.add('hidden'); btn.classList.remove('hidden');
+            
+            let c = 3; btn.innerHTML = `<i class="fa-solid fa-lock mr-2"></i>Wait ${c} seconds...`;
+            const timer = setInterval(() => {
+                c--; if(c > 0) btn.innerHTML = `<i class="fa-solid fa-lock mr-2"></i>Wait ${c} seconds...`;
+                else {
+                    clearInterval(timer); btn.innerHTML = `<i class="fa-solid fa-unlock-keyhole mr-2"></i>Reveal Mobile Number`;
+                    btn.disabled = false; btn.className = "w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-4 rounded-xl cursor-pointer transition transform hover:-translate-y-1 shadow-lg";
+                    btn.onclick = () => {
+                        btn.classList.add('hidden'); document.getElementById('revealedNumberDiv').classList.remove('hidden');
+                        const driverMob = appState.unlockTargetId; document.getElementById('revealedPhoneLink').innerText = driverMob; document.getElementById('revealedPhoneLink').href = "tel:" + driverMob;
+                        document.getElementById('waLink').href = `https://wa.me/91${driverMob}?text=Hi,%20saw%20your%20vehicle%20on%20LocalRides.`;
+                        if(API_URL !== "") fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'track_unlock'})}); else appState.stats.unlocks++; 
+                    };
+                }
+            }, 1000);
+        }
+
+        // ================= SECURE ADMIN SYSTEM & DASHBOARD =================
+        function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        async function handleAdminLogin() {
+            const m = document.getElementById('loginMobile').value.trim(); const p = document.getElementById('loginPass').value.trim();
+            if(API_URL === "") {
+                if(m === '9999999999' && p === 'ADMIN123') { appState.adminToken = 'SECURE'; closeModal('loginModal'); switchView('admin'); } else { alert("Invalid Credentials."); }
+            } else {
+                document.getElementById('loginLoad').classList.remove('hidden'); document.getElementById('btnLogin').disabled = true;
+                try {
+                    const res = await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'admin_login', user: m, pass: p})}); const data = await res.json();
+                    if(data.status === 'success') { appState.adminToken = data.token; closeModal('loginModal'); switchView('admin'); } else { alert("Access Denied"); }
+                } catch(e) { alert("Login failed"); } document.getElementById('loginLoad').classList.add('hidden'); document.getElementById('btnLogin').disabled = false;
+            }
+        }
+        function logoutAdmin() { appState.adminToken = null; switchView('directory'); }
+
+        function renderAdminDashboard() {
+            document.getElementById('statVehicles').innerText = appState.drivers.length; document.getElementById('statVisitors').innerText = appState.stats.visitors; document.getElementById('statUnlocks').innerText = appState.stats.unlocks;
+            let catHTML = ''; appState.categories.forEach(c => { const count = appState.drivers.filter(d => d.capacity === c).length; catHTML += `<div class="flex justify-between items-center py-1.5 border-b border-orange-300/30"><span>${c}</span><span class="bg-white/20 px-2 py-0.5 rounded font-bold">${count}</span></div>`; });
+            document.getElementById('statCategoryBreakdown').innerHTML = catHTML;
+            renderCategories(); renderAdminTable(); renderSlots();
+        }
+
+        function renderCategories() {
+            document.getElementById('adminCategoryList').innerHTML = appState.categories.map((c, i) => `<li class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50 px-2 rounded transition"><span class="font-medium text-gray-700"><i class="fa-solid fa-circle-check text-green-500 mr-2 text-xs"></i> ${c}</span><button onclick="deleteCategory('${c}', ${i})" class="text-gray-300 hover:text-red-500 transition"><i class="fa-solid fa-trash"></i></button></li>`).join('');
+        }
+
+        async function addCategory() {
+            const val = document.getElementById('newCategoryName').value.trim(); if(!val || appState.categories.includes(val)) return;
+            appState.categories.push(val); document.getElementById('newCategoryName').value = ''; renderCategories(); renderCategoryDropdowns(); 
+            if(API_URL !== "") await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'add_category', name: val, token: appState.adminToken})});
+        }
+
+        async function deleteCategory(catName, index) {
+            const hasCars = appState.drivers.some(d => d.capacity === catName);
+            if(hasCars) {
+                const move = confirm(`⚠️ Warning!\nThere are vehicles registered under "${catName}".\nIf you delete this, these vehicles will be moved to "Other".\nProceed?`);
+                if(move) {
+                    appState.categories.splice(index, 1); if(!appState.categories.includes("Other")) appState.categories.push("Other");
+                    appState.drivers.forEach(d => { if(d.capacity === catName) d.capacity = "Other"; });
+                    renderCategories(); renderAdminTable(); renderCategoryDropdowns();
+                    if(API_URL !== "") await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'delete_category', name: catName, token: appState.adminToken})});
+                }
+            } else {
+                if(confirm(`Delete "${catName}"?`)) {
+                    appState.categories.splice(index, 1); renderCategories(); renderCategoryDropdowns();
+                    if(API_URL !== "") await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'delete_category', name: catName, token: appState.adminToken})});
+                }
+            }
+        }
+
+        function findPassword() {
+            const mob = document.getElementById('findPassMobile').value.trim(); if(!mob) return;
+            const res = document.getElementById('passResult'); const d = appState.drivers.find(x => x.mobile === mob);
+            if(d) { res.innerHTML = `Password Found: <span class="bg-green-100 text-green-800 px-3 py-1 rounded-lg border border-green-200">${d.password}</span>`; res.className="mt-2 text-sm font-bold text-center"; } 
+            else { res.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Driver Not found`; res.className="mt-2 text-sm font-bold text-red-500 text-center"; }
+        }
+
+        function renderAdminTable() {
+            const s = document.getElementById('adminTableSearch').value.toLowerCase().trim(); const data = appState.drivers.filter(d => d.name.toLowerCase().includes(s) || d.mobile.includes(s) || d.city.toLowerCase().includes(s));
+            document.getElementById('adminTableBody').innerHTML = data.sort((a,b) => b.referralCount - a.referralCount).map(d => `<tr class="border-b hover:bg-gray-50 transition"><td class="px-4 py-3 text-xs"><div class="font-bold text-gray-900 text-sm">${d.name}</div><div class="text-gray-500 font-medium mt-0.5"><i class="fa-solid fa-phone text-[10px] mr-1"></i>${d.mobile}</div></td><td class="px-4 py-3 text-xs"><div class="font-bold text-gray-800">${d.vehicleName} <span class="text-[9px] uppercase bg-gray-100 border px-1 py-0.5 rounded ml-1">${d.vehicleNumber}</span></div><div class="text-gray-500 mt-0.5 font-medium"><i class="fa-solid fa-location-dot text-red-400 mr-1 text-[10px]"></i>${d.city} • ${d.capacity}</div></td><td class="px-2 py-3 text-center font-bold text-sm text-green-600 bg-green-50">${d.referralCount}</td><td class="px-2 py-3 text-center"><a href="${d.rcPhoto}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-bold text-xs bg-blue-50 px-2 py-1 rounded border border-blue-200"><i class="fa-solid fa-file-shield"></i> RC</a></td><td class="px-2 py-3 text-center"><button onclick="toggleDriverState('${d.mobile}','vip',${!d.isVIP})" class="text-lg transition transform hover:scale-125 ${d.isVIP?'text-yellow-400 drop-shadow-md':'text-gray-300'}"><i class="fa-solid fa-star"></i></button></td><td class="px-2 py-3 text-center"><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" class="sr-only peer" ${d.isActive?'checked':''} onchange="toggleDriverState('${d.mobile}','active',this.checked)"><div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div></label></td></tr>`).join('');
+        }
+
+        async function toggleDriverState(mob, field, val) {
+            const d = appState.drivers.find(x => x.mobile === mob); if(field === 'vip') d.isVIP = val; if(field === 'active') d.isActive = val; renderAdminTable(); 
+            if(API_URL !== "") await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'update_status', mobile: mob, field, value: val, token: appState.adminToken})});
+        }
+
+        // ================= ADMIN DASHBOARD: SPONSORSHIPS =================
+        function renderSlots() {
+            const todayDate = new Date(); todayDate.setHours(0,0,0,0);
+            document.getElementById('slotsGrid').innerHTML = appState.ads.map((s, i) => {
+                const startDate = new Date(s.start); const expiryDate = new Date(startDate); expiryDate.setDate(startDate.getDate() + parseInt(s.days));
+                const diffDays = Math.ceil((expiryDate - todayDate) / (1000 * 60 * 60 * 24));
+                let statusBadge = ""; let cardBorder = "border-gray-200"; let switchHTML = `<input type="checkbox" class="sr-only peer" ${s.isActive?'checked':''} onchange="toggleSlot(${i}, this.checked)">`;
+                if(s.isActive) {
+                    if(diffDays < 0) { statusBadge = `<span class="bg-red-100 text-red-800 text-[10px] px-2 py-1 rounded font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> EXPIRED</span>`; cardBorder = "border-red-300"; } 
+                    else if (diffDays <= 5) { statusBadge = `<span class="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-1 rounded font-bold animate-pulse"><i class="fa-solid fa-clock mr-1"></i> ${diffDays} Days Left</span>`; cardBorder = "border-yellow-400"; } 
+                    else { statusBadge = `<span class="bg-green-100 text-green-800 text-[10px] px-2 py-1 rounded font-bold"><i class="fa-solid fa-check mr-1"></i> Active</span>`; cardBorder = "border-green-300"; }
+                } else { statusBadge = `<span class="bg-gray-100 text-gray-500 text-[10px] px-2 py-1 rounded font-bold">OFFLINE</span>`; switchHTML = `<input type="checkbox" class="sr-only peer" onchange="toggleSlot(${i}, this.checked)">`; }
+
+                let previewHTML = s.type === 'Image' ? `<div class="mt-2 h-16 w-full overflow-hidden rounded bg-gray-100 border border-gray-200 flex items-center justify-center"><img src="${s.content}" class="h-full object-cover opacity-80"></div>` : `<div class="mt-2 h-16 w-full overflow-hidden rounded bg-gray-50 border border-gray-200 p-2 text-xs text-gray-600 line-clamp-2 italic">"${s.content}"</div>`;
+
+                return `<div class="bg-white rounded-2xl shadow-sm border ${cardBorder} overflow-hidden flex flex-col transition hover:shadow-md"><div class="p-4 border-b bg-gray-50 flex justify-between items-start"><div class="w-2/3"><span class="text-[10px] uppercase font-bold text-blue-500 block mb-1"><i class="fa-solid fa-thumbtack mr-1"></i> ${s.pos}</span><h3 class="font-bold text-gray-900 text-lg leading-tight truncate" title="${s.name}">${s.name}</h3></div><label class="relative inline-flex items-center cursor-pointer mt-1">${switchHTML}<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div></label></div><div class="p-4 flex-grow space-y-3">${previewHTML}<div class="flex justify-between items-center text-sm pt-2"><span class="text-gray-500 font-medium">Expiry Status:</span>${statusBadge}</div><div class="flex justify-between items-center text-sm bg-gray-50 p-2 rounded border border-gray-100"><span class="text-gray-500 font-medium"><i class="fa-brands fa-whatsapp text-green-500 mr-1 text-lg"></i> Contact:</span><a href="https://wa.me/91${s.phone}" target="_blank" class="font-bold text-blue-600 hover:underline">${s.phone}</a></div><div class="text-xs text-gray-400 pt-2 border-t text-center font-medium">Expiry Date: ${expiryDate.toLocaleDateString()}</div></div><div class="p-3 bg-gray-50 border-t flex justify-center"><button onclick="openSlotModal('${s.id}')" class="text-sm font-bold text-blue-600 hover:text-blue-800 transition flex items-center"><i class="fa-solid fa-pen-to-square mr-2"></i> Edit Settings</button></div></div>`;
+            }).join('');
+        }
+
+        async function toggleSlot(index, state) { appState.ads[index].isActive = state; renderSlots(); renderHeaderAd(); if(API_URL !== "") await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'toggle_ad', id: appState.ads[index].id, state: state, token: appState.adminToken})}); }
+        function toggleAdInput() { const type = document.getElementById('slotType').value; document.getElementById('adImageDiv').classList.toggle('hidden', type === 'Text'); document.getElementById('adTextDiv').classList.toggle('hidden', type === 'Image'); }
+
+        function openSlotModal(id) {
+            document.getElementById('slotModal').classList.remove('hidden');
+            if(id === 'new') {
+                editingSlotId = null; document.getElementById('slotModalTitle').innerText = "Add New Sponsorship Slot";
+                document.getElementById('slotSponsorName').value = ""; document.getElementById('slotSponsorPhone').value = "";
+                document.getElementById('slotPos').value = "Top Header"; document.getElementById('slotType').value = "Image";
+                document.getElementById('slotAdText').value = ""; document.getElementById('slotStartDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('slotDuration').value = "30"; toggleAdInput(); calculateExpiry();
+            } else {
+                editingSlotId = id; document.getElementById('slotModalTitle').innerText = "Edit Slot Settings"; const s = appState.ads.find(x => x.id === id);
+                document.getElementById('slotSponsorName').value = s.name; document.getElementById('slotSponsorPhone').value = s.phone;
+                document.getElementById('slotPos').value = s.pos; document.getElementById('slotType').value = s.type;
+                if(s.type === 'Text') document.getElementById('slotAdText').value = s.content; else document.getElementById('slotAdText').value = "";
+                document.getElementById('slotStartDate').value = s.start; document.getElementById('slotDuration').value = s.days; toggleAdInput(); calculateExpiry();
+            }
+        }
+
+        function calculateExpiry() { const startVal = document.getElementById('slotStartDate').value; const days = parseInt(document.getElementById('slotDuration').value); if(!startVal) return; const start = new Date(startVal); const exp = new Date(start); exp.setDate(start.getDate() + days); document.getElementById('slotExpiryResult').innerText = exp.toDateString(); }
+
+        async function saveSlot() {
+            const name = document.getElementById('slotSponsorName').value.trim(); if(!name) return alert("Please enter sponsor name");
+            const btn = document.getElementById('btnSaveSlot'); const txt = document.getElementById('saveSlotTxt'); const loader = document.getElementById('saveSlotLoader');
+            btn.disabled = true; txt.innerText = "Saving..."; loader.classList.remove('hidden');
+            try {
+                const type = document.getElementById('slotType').value; let content = "";
+                if (type === 'Text') { content = document.getElementById('slotAdText').value.trim(); if(!content) throw new Error("Please enter ad text"); } 
+                else { const imgInput = document.getElementById('slotAdImage'); if(imgInput.files.length > 0) content = await uploadFile(imgInput.files[0]); else if (editingSlotId !== null && appState.ads.find(x => x.id === editingSlotId).type === 'Image') content = appState.ads.find(x => x.id === editingSlotId).content; else content = "https://via.placeholder.com/400x200/FF5722/FFF?text=No+Image+Uploaded"; }
+                const newData = { name: name, phone: document.getElementById('slotSponsorPhone').value.trim(), pos: document.getElementById('slotPos').value, type: type, content: content, start: document.getElementById('slotStartDate').value, days: parseInt(document.getElementById('slotDuration').value), isActive: true };
+                if(editingSlotId === null) { newData.id = 'AD' + Date.now(); appState.ads.push(newData); } else { newData.id = editingSlotId; const idx = appState.ads.findIndex(x => x.id === editingSlotId); appState.ads[idx] = newData; }
+                if(API_URL !== "") await fetch(API_URL, {method: 'POST', body: JSON.stringify({action: 'save_ad', ad: newData, token: appState.adminToken})});
+                document.getElementById('slotModal').classList.add('hidden'); renderSlots(); renderHeaderAd();
+            } catch(e) { alert(e.message); } finally { btn.disabled = false; txt.innerText = "Save & Activate Slot"; loader.classList.add('hidden'); }
+        }
+
+        function closeModal(id) { const m = document.getElementById(id); if(id === 'vehicleModal') { m.classList.add('opacity-0'); setTimeout(() => m.classList.add('hidden'), 300); } else m.classList.add('hidden'); }
+    </script>
+</body>
+</html>
+```eof
+
+Ab humara Frontend poori tarah pack aur ready ho gaya hai. Aap aage ka setup (Google Sheet Backend) shuru karne ke liye bata dein!
