@@ -518,11 +518,14 @@
         }
 
         // ================= REGISTRATION / UPDATE UPLOAD LOGIC =================
-        async function uploadFile(file) {
-            if(CLOUD_NAME === "ov7lziy0" && API_URL === "") return "https://via.placeholder.com/400?text=Connect+API+First"; // Prevents silent fail in dev
+                async function uploadFile(file) {
+            if(CLOUD_NAME === "ov7lziy0" && API_URL === "") return "https://via.placeholder.com/400?text=Connect+API+First"; 
             const fd = new FormData(); fd.append('file', file); fd.append('upload_preset', UPLOAD_PRESET);
             const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {method:'POST', body:fd});
-            return (await r.json()).secure_url;
+            const data = await r.json();
+            
+            // MAGIC TRICK: 10MB की फोटो को अपने आप 100KB में बदलना (Quality Auto, Format Auto, Width 800px)
+            return data.secure_url.replace('/upload/', '/upload/q_auto,f_auto,w_800/');
         }
 
         async function handleRegistration(e) {
